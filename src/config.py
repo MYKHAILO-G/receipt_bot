@@ -1,7 +1,7 @@
 import os
 import json
 
-FILE_NAME = "data/bot_config/keys.json"
+FILE_NAME = "../data/bot_config/keys.json"
 if not os.path.exists(FILE_NAME):
     raise FileNotFoundError("Config file not found")
 

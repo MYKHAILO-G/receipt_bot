@@ -3,7 +3,7 @@ import json
 import os
 import uuid
 
-FILE_NAME = "receipts.xlsx"
+FILE_NAME = "../data/receipts.xlsx"
 
 def save_to_excel(json_data):
   #  data = json.loads(json_data)

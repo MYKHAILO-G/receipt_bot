@@ -4,7 +4,7 @@ from openpyxl import load_workbook
 
 class Database:
     def __init__(self):
-        self.users_file = "data/users_data/users.json"
+        self.users_file = "../data/users_data/users.json"
         self._ensure_users_file()
     
     def _ensure_users_file(self):
@@ -21,7 +21,7 @@ class Database:
             json.dump(users, f, indent=2)
     
     def get_user_data(self, user_id):
-        xlsx_path = f"data/users_data/{user_id}/data.xlsx"
+        xlsx_path = f"../data/users_data/{user_id}/data.xlsx"
         if os.path.exists(xlsx_path):
             return load_workbook(xlsx_path)
         return None 
