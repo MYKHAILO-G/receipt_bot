@@ -35,13 +35,8 @@ def parse_receipt(image_bytes):
     )
 
     raw = response.text
-
-    print("RAW:", raw)  # 👈 обязательно оставь пока
-
     clean = clean_json(raw)
-
     data = json.loads(clean)
-
     return data
 
 # from google import genai
