@@ -7,6 +7,15 @@ from config import BOT_TOKEN
 from gemini import parse_receipt
 from excel import save_to_excel
 
+from flask import Flask
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "OK"
+
+app.run(host="0.0.0.0", port=10000)
+
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
