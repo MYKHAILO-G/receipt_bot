@@ -2,3 +2,5 @@ aiogram
 openpyxl
 google-genai
 flask
+psycopg2-binary
+openpyxl

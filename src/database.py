@@ -1,113 +1,79 @@
-import json
-import os
-import uuid
-
-from openpyxl import Workbook, load_workbook
+from abc import ABC, abstractmethod
 
 
-class Database:
-    HEADERS = ["UUID", "Date", "Store", "Item", "Price"]
-
-    def __init__(self):
-        self.base_dir = "../data/users_data"
-        self.users_file = os.path.join(self.base_dir, "users.json")
-        self._ensure_users_file()
+class Database(ABC):
+    """
+    Abstract base class defining the contract for all database backends.
+    Implement this class to add a new storage backend (SQLite, PostgreSQL, etc.)
+    and swap it in via dependency injection.
+    """
 
     # ------------------------------------------------------------------
-    # Internal helpers
+    # User metadata
     # ------------------------------------------------------------------
 
-    def _ensure_users_file(self):
-        os.makedirs(self.base_dir, exist_ok=True)
-        if not os.path.exists(self.users_file):
-            with open(self.users_file, "w") as f:
-                json.dump({}, f)
+    @abstractmethod
+    def save_user(self, user_id: int | str, user_data: dict) -> None:
+        """
+        Persist arbitrary user metadata (name, username, etc.).
 
-    def _user_dir(self, user_id: int | str) -> str:
-        path = os.path.join(self.base_dir, str(user_id))
-        os.makedirs(path, exist_ok=True)
-        return path
+        Args:
+            user_id:   Unique identifier for the user.
+            user_data: Dict of metadata to store (e.g. {"name": "Alice"}).
+        """
 
-    def _xlsx_path(self, user_id: int | str) -> str:
-        return os.path.join(self._user_dir(user_id), "data.xlsx")
-
-    def _load_or_create_workbook(self, user_id: int | str):
-        path = self._xlsx_path(user_id)
-        if os.path.exists(path):
-            return load_workbook(path)
-        wb = Workbook()
-        ws = wb.active
-        ws.append(self.HEADERS)
-        wb.save(path)
-        return wb
-
-    # ------------------------------------------------------------------
-    # User metadata (users.json)
-    # ------------------------------------------------------------------
-
-    def save_user(self, user_id: int | str, user_data: dict):
-        """Persist arbitrary user metadata (name, username, etc.)."""
-        with open(self.users_file, "r") as f:
-            users = json.load(f)
-        users[str(user_id)] = user_data
-        with open(self.users_file, "w") as f:
-            json.dump(users, f, indent=2, ensure_ascii=False)
-
+    @abstractmethod
     def get_user(self, user_id: int | str) -> dict | None:
-        with open(self.users_file, "r") as f:
-            users = json.load(f)
-        return users.get(str(user_id))
+        """
+        Retrieve user metadata.
+
+        Returns:
+            The stored metadata dict, or None if the user does not exist.
+        """
 
     # ------------------------------------------------------------------
     # Receipt data
     # ------------------------------------------------------------------
 
-    def save_receipt(self, user_id: int | str, receipt: dict):
+    @abstractmethod
+    def save_receipt(self, user_id: int | str, receipt: dict) -> None:
         """
-        Append receipt items to the user's Excel file.
+        Persist a receipt and its line items for a user.
 
-        Expected receipt format:
-        {
-            "date":  "2024-01-01",
-            "store": "Silpo",
-            "items": [
-                {"name": "Milk", "price": 45.0},
-                ...
-            ]
-        }
+        Expected receipt format::
+
+            {
+                "date":  "2024-01-01",
+                "store": "Silpo",
+                "items": [
+                    {"name": "Milk",  "price": 45.0},
+                    {"name": "Bread", "price": 30.0},
+                ]
+            }
+
+        Args:
+            user_id: Unique identifier for the user.
+            receipt: Receipt dict as described above.
         """
-        wb = self._load_or_create_workbook(user_id)
-        ws = wb.active
-        receipt_uuid = str(uuid.uuid4())
-        for item in receipt["items"]:
-            ws.append([
-                receipt_uuid,
-                receipt.get("date", ""),
-                receipt.get("store", ""),
-                item["name"],
-                item["price"],
-            ])
-        wb.save(self._xlsx_path(user_id))
 
+    @abstractmethod
     def get_receipts(self, user_id: int | str) -> list[dict] | None:
         """
-        Return all rows as a list of dicts, or None if the user has no data.
-        """
-        path = self._xlsx_path(user_id)
-        if not os.path.exists(path):
-            return None
-        wb = load_workbook(path)
-        ws = wb.active
-        rows = list(ws.iter_rows(values_only=True))
-        if len(rows) <= 1:   # only headers
-            return []
-        headers = rows[0]
-        return [dict(zip(headers, row)) for row in rows[1:]]
+        Retrieve all receipt rows for a user.
 
+        Returns:
+            A list of row dicts with keys matching the storage headers
+            (UUID, Date, Store, Item, Price), an empty list if the user
+            exists but has no data, or None if the user has no storage at all.
+        """
+
+    @abstractmethod
     def get_xlsx_path(self, user_id: int | str) -> str | None:
         """
-        Return the absolute path to the user's .xlsx file,
-        or None if it doesn't exist yet. Pass directly to FSInputFile.
+        Return the absolute path to an Excel export of the user's data,
+        or None if unavailable.
+
+        Backends that do not use Excel files natively should either:
+          - generate a temporary .xlsx on demand and return its path, or
+          - return None to signal that file export is unsupported.
         """
-        path = self._xlsx_path(user_id)
-        return os.path.abspath(path) if os.path.exists(path) else None

@@ -10,9 +10,12 @@ from aiogram.filters import CommandStart, Command
 
 from flask import Flask, jsonify
 
-from config import BOT_TOKEN
-from gemini import parse_receipt
+from config import BOT_TOKEN, POSTGRES_HREF
 from database import Database
+from gemini import parse_receipt
+# from database import Database
+# from database_excel import ExcelDatabase
+from database_neon import NeonDatabase
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -48,9 +51,9 @@ def run_flask():
 # ---------------------------------------------------------------------------
 # Aiogram bot
 # ---------------------------------------------------------------------------
-bot = Bot(token=BOT_TOKEN)
+bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
-db = Database()
+db: Database = NeonDatabase(POSTGRES_HREF)
 
 PAGE_SIZE = 5
 
